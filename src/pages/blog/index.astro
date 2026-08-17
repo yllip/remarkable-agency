@@ -1,0 +1,83 @@
+---
+import Layout from "@/layouts/BaseLayout.astro";
+import Section from "@/components/Section.astro";
+import ContentWrapper from "@/components/ContentWrapper.astro";
+import Eyebrow from "@/components/Eyebrow.astro";
+import Heading from "@/components/Heading.astro";
+import Paragraph from "@/components/Paragraph.astro";
+import Grid from "@/components/Grid.astro";
+import PostCard from "@/components/PostCard.astro";
+import { getPosts, postHref } from "@/utils/blog.ts";
+
+const posts = await getPosts();
+---
+
+<Layout
+  title="Blog"
+  description="Notes on brand, design and development from the Remarkable studio."
+>
+  {/* ---------- Intro ---------- */}
+  <Section paddingBottom="small">
+    <ContentWrapper variant="auto-width" class="blog-intro">
+      <div class="blog-intro_header">
+        <Eyebrow data-intro>Insights</Eyebrow>
+        <Heading tag="h1" variant="h2" data-split="lines" data-intro>
+          Notes from <span class="font-secondary">the studio</span>
+        </Heading>
+      </div>
+      <Paragraph slot="column2" variant="large" maxWidth={44} data-intro>
+        What we're learning about brand, design and development — written up as
+        we go, for the people who have to live with the result.
+      </Paragraph>
+    </ContentWrapper>
+  </Section>
+
+  {/* ---------- Posts ---------- */}
+  <Section paddingTop="none" paddingBottom="large">
+    <Grid xsmall={1} medium={2} large={3} class="blog-list">
+      {
+        posts.map((post) => (
+          <PostCard
+            tag={post.data.tag}
+            heading={post.data.title}
+            headingTag="h2"
+            date={post.data.pubDate}
+            href={postHref(post)}
+            data-reveal
+          />
+        ))
+      }
+    </Grid>
+
+    <Paragraph render={posts.length === 0} variant="large">
+      There's nothing published here yet. Check back shortly.
+    </Paragraph>
+  </Section>
+</Layout>
+
+<style is:global>
+  @layer components {
+    /* The heading and the standfirst sit on one line once there is room for
+       them, and the standfirst takes the right-hand half. */
+    .blog-intro {
+      align-items: end;
+      & > :last-child {
+        @media (width >= 64rem) {
+          max-width: 50%;
+        }
+      }
+    }
+
+    .blog-intro_header {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-5);
+    }
+
+    /* Cards in a row match heights so the dates along the bottom line up. */
+    .blog-list {
+      align-items: stretch;
+    }
+  }
+</style>

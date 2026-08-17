@@ -1,0 +1,98 @@
+---
+import type { GetStaticPaths } from "astro";
+import type { CollectionEntry } from "astro:content";
+import { getCollection, render } from "astro:content";
+import Layout from "@/layouts/BaseLayout.astro";
+import Section from "@/components/Section.astro";
+import Heading from "@/components/Heading.astro";
+import Paragraph from "@/components/Paragraph.astro";
+import Eyebrow from "@/components/Eyebrow.astro";
+import Img from "@/components/Img.astro";
+import RichText from "@/components/RichText.astro";
+import Button from "@/components/Button.astro";
+import ButtonWrapper from "@/components/ButtonWrapper.astro";
+
+export const getStaticPaths = (async () => {
+  const projects = await getCollection("projects");
+  return projects.map((project) => ({
+    params: { id: project.id },
+    props: { project },
+  }));
+}) satisfies GetStaticPaths;
+
+type Props = { project: CollectionEntry<"projects"> };
+
+const { project } = Astro.props as Props;
+const { title, summary, image, imageAlt, services, year } = project.data;
+const { Content } = await render(project);
+---
+
+<Layout title={title} description={summary} type="article">
+  <Section paddingTop="large" paddingBottom="small" gap="6">
+    <div class="project_header">
+      <Eyebrow data-intro>{String(year)}</Eyebrow>
+      <Heading tag="h1" variant="h2" data-split="lines" data-intro
+        >{title}</Heading
+      >
+      <Paragraph variant="large" maxWidth={56} data-intro>{summary}</Paragraph>
+    </div>
+
+    <ul class="project_services" data-intro>
+      {
+        services.map((service) => (
+          <li>
+            <Eyebrow variant="tag">{service}</Eyebrow>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <Section paddingTop="none" paddingBottom="medium">
+    <Img
+      src={image}
+      alt={imageAlt}
+      loading="eager"
+      fetchPriority="high"
+      class="project_cover"
+      data-reveal
+    />
+  </Section>
+
+  <Section paddingTop="none" paddingBottom="large">
+    <RichText maxWidth={68}>
+      <Content />
+    </RichText>
+    <ButtonWrapper>
+      <Button element="link" href="/work" variant="secondary">
+        All work
+      </Button>
+    </ButtonWrapper>
+  </Section>
+</Layout>
+
+<style is:global>
+  @layer components {
+    .project_header {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-5);
+    }
+
+    .project_services {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .project_cover {
+      width: 100%;
+      aspect-ratio: 3 / 2;
+      border-radius: var(--radius-main);
+    }
+  }
+</style>

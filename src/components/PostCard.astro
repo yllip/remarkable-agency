@@ -1,0 +1,99 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Eyebrow from "@/components/Eyebrow.astro";
+import Heading from "@/components/Heading.astro";
+import MetaRow from "@/components/MetaRow.astro";
+import FormattedDate from "@/components/FormattedDate.astro";
+
+type HeadingTag = "h2" | "h3" | "h4" | "h5" | "h6";
+
+interface Props extends Omit<HTMLAttributes<"a">, "title"> {
+  /** Set to `false` to skip rendering this component and its children. */
+  render?: boolean;
+  /** Category label, drawn as a brand-colored pill. */
+  tag?: string;
+  /** The post's title. */
+  heading: string;
+  /** Heading level, for the page outline. Every card heading is the same size. */
+  headingTag?: HeadingTag;
+  /** Publication date, formatted by `FormattedDate`. */
+  date?: Date;
+  /** Where the card leads. Left out, it renders as a plain article. */
+  href?: string;
+}
+
+const {
+  render = true,
+  tag,
+  heading,
+  headingTag = "h3",
+  date,
+  href,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? "a" : "article";
+const tagAttrs = href ? { href } : {};
+---
+
+{
+  render && (
+    <Tag
+      class:list={["post-card", href && "card-link", className]}
+      {...tagAttrs}
+      {...rest}
+    >
+      <div class="post-card_top">
+        <Eyebrow variant="tag">{tag}</Eyebrow>
+        <Heading tag={headingTag} variant="h4" class="line-height-large">
+          {heading}
+        </Heading>
+      </div>
+      <MetaRow class="post-card_meta" arrow={!!href}>
+        {date && (
+          <FormattedDate
+            date={date}
+            format={{ day: "2-digit", month: "2-digit", year: "2-digit" }}
+          />
+        )}
+      </MetaRow>
+    </Tag>
+  )
+}
+
+<style is:global>
+  @layer components {
+    /* The top block and the meta row are pushed apart, so the dates line up
+       across a row of cards however tall the headings run. */
+    .post-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-6);
+      width: 100%;
+      height: 100%;
+      padding: var(--space-6);
+      background-color: var(--background-2);
+      border-radius: var(--radius-main);
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .post-card_top {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-6);
+    }
+
+    .post-card.card-link {
+      transition: translate 200ms;
+      @media (hover: hover) {
+        &:hover {
+          translate: 0 -0.25rem;
+        }
+      }
+    }
+  }
+</style>

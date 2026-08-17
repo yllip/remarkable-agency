@@ -1,0 +1,149 @@
+---
+import { render } from "astro:content";
+import Layout from "@/layouts/BaseLayout.astro";
+import Section from "@/components/Section.astro";
+import Eyebrow from "@/components/Eyebrow.astro";
+import Heading from "@/components/Heading.astro";
+import Paragraph from "@/components/Paragraph.astro";
+import RichText from "@/components/RichText.astro";
+import FormattedDate from "@/components/FormattedDate.astro";
+import Img from "@/components/Img.astro";
+import Grid from "@/components/Grid.astro";
+import PostCard from "@/components/PostCard.astro";
+import Button from "@/components/Button.astro";
+import ButtonWrapper from "@/components/ButtonWrapper.astro";
+import { getPosts, postHref, type Post } from "@/utils/blog.ts";
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const {
+  title,
+  description,
+  tag,
+  pubDate,
+  updatedDate,
+  heroImage,
+  heroImageAlt,
+} = post.data;
+
+/* Three more to read, newest first, minus the one being read. */
+const more = (await getPosts())
+  .filter((entry) => entry.id !== post.id)
+  .slice(0, 3);
+---
+
+<Layout title={title} description={description} type="article">
+  {/* ---------- Post ---------- */}
+  <Section paddingBottom="small" gap="7">
+    <div class="post-header">
+      <Eyebrow variant="tag" data-intro>{tag}</Eyebrow>
+      <Heading
+        tag="h1"
+        variant="h2"
+        maxWidth={30}
+        data-split="lines"
+        data-intro
+      >
+        {title}
+      </Heading>
+      <Paragraph variant="large" maxWidth={60} data-intro
+        >{description}</Paragraph
+      >
+      <p class="post-header_meta text-style-small" data-intro>
+        <FormattedDate date={pubDate} />
+        {
+          updatedDate && (
+            <>
+              {" · Updated "}
+              <FormattedDate date={updatedDate} />
+            </>
+          )
+        }
+      </p>
+    </div>
+
+    {
+      heroImage && (
+        <Img
+          src={heroImage}
+          alt={heroImageAlt}
+          variant="constrained"
+          sizes="(min-width: 64rem) 64rem, 100vw"
+          loading="eager"
+          fetchPriority="high"
+          class="post-hero"
+          data-reveal
+        />
+      )
+    }
+
+    <RichText class="post-body" maxWidth={70}>
+      <Content />
+    </RichText>
+
+    <ButtonWrapper>
+      <Button element="link" href="/blog" variant="secondary">
+        All posts
+      </Button>
+    </ButtonWrapper>
+  </Section>
+
+  {/* ---------- More reading ---------- */}
+  <Section render={more.length > 0} theme="light" paddingBottom="large" gap="6">
+    <Heading tag="h2" variant="h3" data-split="lines">Keep reading</Heading>
+    <Grid xsmall={1} medium={2} large={3} class="post-more">
+      {
+        more.map((entry) => (
+          <PostCard
+            tag={entry.data.tag}
+            heading={entry.data.title}
+            date={entry.data.pubDate}
+            href={postHref(entry)}
+            data-reveal
+          />
+        ))
+      }
+    </Grid>
+  </Section>
+</Layout>
+
+<style is:global>
+  @layer components {
+    .post-header {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-5);
+    }
+
+    /* The date closes the header, so it is set apart from the standfirst. */
+    .post-header_meta {
+      margin: 0;
+      color: color-mix(in lab, currentcolor 60%, transparent);
+    }
+
+    .post-hero {
+      width: 100%;
+      border-radius: var(--radius-main);
+      aspect-ratio: 16 / 9;
+    }
+
+    /* Cards in a row match heights so the dates along the bottom line up. */
+    .post-more {
+      align-items: stretch;
+    }
+  }
+</style>

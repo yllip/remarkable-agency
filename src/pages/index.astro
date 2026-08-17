@@ -1,0 +1,369 @@
+---
+import Layout from "@/layouts/BaseLayout.astro";
+import Section from "@/components/Section.astro";
+import ContentWrapper from "@/components/ContentWrapper.astro";
+import Heading from "@/components/Heading.astro";
+import Eyebrow from "@/components/Eyebrow.astro";
+import Button from "@/components/Button.astro";
+import ButtonWrapper from "@/components/ButtonWrapper.astro";
+import Grid from "@/components/Grid.astro";
+import Img from "@/components/Img.astro";
+import Icon from "@/components/Icon.astro";
+import ProjectCard from "@/components/ProjectCard.astro";
+import PostCard from "@/components/PostCard.astro";
+import { getPosts, postHref } from "@/utils/blog.ts";
+import { getProjects, projectHref } from "@/utils/projects.ts";
+import wordmark from "@/assets/wordmark.svg";
+import hero from "@/assets/images/hero.jpg";
+import philosophy from "@/assets/images/philosophy.jpg";
+import careers from "@/assets/images/careers.jpg";
+
+/* The newest project is the one the hero features; the three behind it fill the
+   spotlight below, so nothing appears twice. */
+const [featured, ...rest] = await getProjects();
+const projects = rest.slice(0, 3);
+
+/* The three most recent posts. The rest are at /blog. */
+const posts = (await getPosts()).slice(0, 3);
+---
+
+<Layout overlap title="Helping authentic brands create connections">
+  {/* ---------- Hero ---------- */}
+  <Section
+    class="home-hero"
+    paddingTop="navoverlap"
+    paddingBottom="even"
+    containerClass="home-hero_container"
+  >
+    {/* The drift is on the photograph, not the wrapper, so the gradient the
+         wrapper carries stays where the type needs it. */}
+    <div class="home-hero_background" slot="background">
+      <Img
+        src={hero}
+        alt=""
+        loading="eager"
+        fetchPriority="high"
+        data-parallax="8"
+      />
+    </div>
+
+    <ContentWrapper variant="columns" class="home-hero_layout">
+      <div class="home-hero_content">
+        <Heading
+          tag="h1"
+          variant="h2"
+          class="home-hero_heading"
+          data-split="lines"
+          data-intro
+        >
+          Helping authentic brands create<br />
+          <span class="font-secondary">connections</span>
+        </Heading>
+        <ButtonWrapper data-intro>
+          <Button element="link" href="/work">Our Portfolio</Button>
+          <Button element="link" href="/contact" variant="secondary">
+            Get in Touch
+          </Button>
+        </ButtonWrapper>
+      </div>
+
+      <ProjectCard
+        slot="column2"
+        variant="stacked"
+        class="home-hero_featured"
+        label={featured.data.title}
+        image={featured.data.image}
+        imageAlt={featured.data.imageAlt}
+        href={projectHref(featured)}
+        ratio="16 / 9"
+        loading="eager"
+        data-intro
+      />
+    </ContentWrapper>
+
+    <Icon
+      src={wordmark}
+      variant="full-width"
+      class="home-hero_wordmark"
+      data-intro
+    />
+  </Section>
+
+  {/* ---------- Recent projects ---------- */}
+  <Section paddingTop="large" containerClass="home-projects">
+    <div class="home-projects_intro">
+      <div class="home-projects_header">
+        <Eyebrow data-reveal>Portfolio Spotlight</Eyebrow>
+        <Heading tag="h2" data-split="lines">Recent projects</Heading>
+      </div>
+      <ButtonWrapper marginTop="0" data-reveal>
+        <Button element="link" href="/work" variant="secondary">View All</Button
+        >
+      </ButtonWrapper>
+    </div>
+
+    <ul class="home-projects_list">
+      {
+        projects.map((project) => (
+          <li class="home-projects_item" data-reveal>
+            <ProjectCard
+              label={project.data.title}
+              image={project.data.image}
+              imageAlt={project.data.imageAlt}
+              href={projectHref(project)}
+            />
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  {/* ---------- Our Philosophy ---------- */}
+  <Section paddingTop="none" paddingBottom="large">
+    <ContentWrapper variant="columns" class="home-split">
+      <div class="home-split_content">
+        <div class="home-split_header">
+          <Eyebrow data-reveal>Our Philosophy</Eyebrow>
+          <Heading tag="h2" class="heading-accent" data-split="lines">
+            Human-centric <strong>strategies</strong> to cut<br />
+            <span class="font-secondary">through the noise</span>
+          </Heading>
+        </div>
+        <ButtonWrapper marginTop="0" data-reveal>
+          <Button element="link" href="/about" variant="secondary">
+            Our Story
+          </Button>
+        </ButtonWrapper>
+      </div>
+
+      <Img
+        slot="column2"
+        src={philosophy}
+        alt="The studio team gathered around a long table in a plant-filled workspace"
+        variant="constrained"
+        sizes="(min-width: 64rem) 50vw, 100vw"
+        data-reveal
+      />
+    </ContentWrapper>
+  </Section>
+
+  {/* ---------- Insights from our blog ---------- */}
+  <Section theme="light" paddingTop="large" paddingBottom="none" gap="6">
+    <Heading tag="h2" data-split="lines">
+      Insights from <span class="font-secondary">our blog</span>
+    </Heading>
+
+    <Grid xsmall={1} medium={2} large={3} class="home-posts">
+      {
+        posts.map((post) => (
+          <PostCard
+            tag={post.data.tag}
+            heading={post.data.title}
+            date={post.data.pubDate}
+            href={postHref(post)}
+            data-reveal
+          />
+        ))
+      }
+    </Grid>
+  </Section>
+
+  {/* ---------- Work for Remarkable ---------- */}
+  <Section theme="light">
+    <ContentWrapper variant="columns" class="home-split">
+      <div class="home-split_content">
+        <div class="home-split_header">
+          <Eyebrow data-reveal>Work for Remarkable</Eyebrow>
+          <Heading tag="h2" class="heading-accent" data-split="lines">
+            Craft your future with our <strong>impactful</strong><br />
+            <span class="font-secondary">creative team</span>
+          </Heading>
+        </div>
+        <ButtonWrapper marginTop="0" data-reveal>
+          <Button element="link" href="/careers">View Openings</Button>
+          <Button element="link" href="/about" variant="secondary">
+            About The Team
+          </Button>
+        </ButtonWrapper>
+      </div>
+
+      <Img
+        slot="column2"
+        src={careers}
+        alt="Colleagues talking in a lounge with hanging lights and large plants"
+        variant="constrained"
+        sizes="(min-width: 64rem) 50vw, 100vw"
+        data-reveal
+      />
+    </ContentWrapper>
+  </Section>
+</Layout>
+
+<style is:global>
+  @layer components {
+    /* ---------- Hero ---------- */
+
+    /* The wordmark closes the hero, so the section is as tall as the viewport
+       and everything above it is pushed up against the nav. */
+    .home-hero {
+      min-height: 100svh;
+      justify-content: flex-end;
+      overflow: clip;
+    }
+
+    .home-hero_background {
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        /* Type sits on the photograph at both ends, so it is darkened at both. */
+        background-image: linear-gradient(
+          to bottom,
+          color-mix(in srgb, var(--dark-900) 55%, transparent),
+          transparent 45%
+        );
+      }
+      & > .image {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .home-hero_container {
+      gap: var(--section-space-medium);
+      justify-content: flex-end;
+      flex-grow: 1;
+    }
+
+    .home-hero_layout {
+      align-items: start;
+      /* The layout centres its first column by default; here the heading and
+         the featured card start on the same line instead. */
+      & > * {
+        align-self: start;
+      }
+      @media (width >= 64rem) {
+        /* The heading takes two thirds, the featured card the last third. */
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      }
+    }
+
+    .home-hero_content {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-7);
+      max-width: 34rem;
+    }
+
+    .home-hero_featured {
+      @media (width >= 64rem) {
+        max-width: 20rem;
+        margin-left: auto;
+      }
+    }
+
+    /* A wordmark, not a heading — it scales with the container and nothing else. */
+    .home-hero_wordmark {
+      width: 100%;
+      height: auto;
+      flex: none;
+    }
+
+    /* ---------- Recent projects ---------- */
+
+    .home-projects {
+      display: grid;
+      gap: var(--space-8) var(--site-gutter);
+      @media (width >= 64rem) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+        align-items: start;
+      }
+    }
+
+    .home-projects_intro {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-7);
+    }
+
+    .home-projects_header {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-5);
+    }
+
+    .home-projects_list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--site-gutter);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      @media (width >= 48rem) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+      }
+    }
+
+    /* The three cards step down from left to right, the way the design stacks
+       them. Below the breakpoint above they sit level. */
+    @media (width >= 48rem) {
+      .home-projects_item:nth-child(2) {
+        margin-top: var(--section-space-large);
+      }
+      .home-projects_item:nth-child(3) {
+        margin-top: var(--section-space-medium);
+      }
+    }
+
+    /* ---------- Split sections ---------- */
+
+    .home-split {
+      /* The visual is wider than the layout's default 3:2. */
+      --_visual-ratio: 5 / 4;
+      /* How far the container's right edge sits from the viewport's, so the
+         visual can reach past it. Covers both the margin-bound width and the
+         capped one, where the container is centred and the gap is larger. */
+      --_bleed: calc(
+        (100vw - min(100vw - var(--site-margin) * 2, var(--max-width-main))) / 2
+      );
+      align-items: center;
+      @media (width >= 64rem) {
+        /* A narrow column of type against a wide visual, with air between. */
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        column-gap: var(--section-space-medium);
+
+        /* The visual runs off the right edge; only its left corners round. */
+        & > :last-child {
+          margin-right: calc(var(--_bleed) * -1);
+          border-start-end-radius: 0;
+          border-end-end-radius: 0;
+        }
+      }
+    }
+
+    .home-split_content {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-7);
+    }
+
+    .home-split_header {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-5);
+    }
+
+    /* ---------- Blog ---------- */
+
+    /* Cards in a row match heights so the dates along the bottom line up. */
+    .home-posts {
+      align-items: stretch;
+    }
+  }
+</style>

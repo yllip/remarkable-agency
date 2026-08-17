@@ -1,0 +1,58 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Icon from "@/components/Icon.astro";
+import arrow from "@/assets/icons/arrow-up-right.svg";
+import { slotContent } from "@/utils/slots.ts";
+
+interface Props extends HTMLAttributes<"div"> {
+  /** Set to `false` to skip rendering this component and its children. */
+  render?: boolean;
+  /** Hide the arrow on a row that doesn't lead anywhere. */
+  arrow?: boolean;
+}
+
+const {
+  render = true,
+  arrow: showArrow = true,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const content = await slotContent(Astro.slots);
+---
+
+{
+  render && content && (
+    <div class:list={["meta-row", className]} {...rest}>
+      <p class="meta-row_text text-style-large line-height-large">
+        <slot />
+      </p>
+      {showArrow && <Icon src={arrow} variant="small" class="meta-row_icon" />}
+    </div>
+  )
+}
+
+<style is:global>
+  @layer components {
+    /* A label and the arrow that closes it, pushed to opposite edges. Used on
+       its own under a visual, and over one inside a card. */
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      width: 100%;
+      color: inherit;
+    }
+
+    /* The arrow travels on hover, so the row needs somewhere to put it. */
+    .meta-row_icon {
+      transition: transform 200ms;
+    }
+
+    a:hover .meta-row_icon,
+    .card-link:hover .meta-row_icon {
+      transform: translate(0.15em, -0.15em);
+    }
+  }
+</style>

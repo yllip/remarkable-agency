@@ -1,0 +1,71 @@
+---
+import { getProjects, projectHref } from "@/utils/projects.ts";
+import Layout from "@/layouts/BaseLayout.astro";
+import Section from "@/components/Section.astro";
+import Heading from "@/components/Heading.astro";
+import Paragraph from "@/components/Paragraph.astro";
+import Eyebrow from "@/components/Eyebrow.astro";
+import ProjectCard from "@/components/ProjectCard.astro";
+
+const projects = await getProjects();
+---
+
+<Layout
+  title="Selected work"
+  description="Case studies from the studio: brand strategy, identity, and the sites and products they live on."
+>
+  <Section paddingTop="large" paddingBottom="large" containerClass="work-list">
+    <div class="work-list_header">
+      <Eyebrow data-intro>Portfolio</Eyebrow>
+      <Heading tag="h1" variant="h2" data-split="lines" data-intro>
+        Selected <span class="font-secondary">work</span>
+      </Heading>
+      <Paragraph variant="large" maxWidth={52} data-intro>
+        Every project here started with a positioning problem rather than a
+        design one. The design is how we settled it.
+      </Paragraph>
+    </div>
+
+    <ul class="work-list_items">
+      {
+        projects.map((project, index) => (
+          <li data-reveal>
+            <ProjectCard
+              label={project.data.title}
+              image={project.data.image}
+              imageAlt={project.data.imageAlt}
+              href={projectHref(project)}
+              loading={index === 0 ? "eager" : "lazy"}
+            />
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+</Layout>
+
+<style is:global>
+  @layer components {
+    .work-list_header {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-5);
+    }
+
+    .work-list_items {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-8) var(--site-gutter);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      @media (width >= 30rem) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      @media (width >= 64rem) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+  }
+</style>

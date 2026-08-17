@@ -1,0 +1,69 @@
+/* ==========================================================================
+   Motion
+
+   The half of src/scripts/motion.ts that has to be in place before the first
+   paint: the resting state of everything the script animates in, the room a
+   masked or drifting element needs, and the two rules Lenis puts on the
+   document.
+
+   All of it is gated twice. `html.motion` is set by an inline script in
+   BaseLayout, so a page whose JavaScript never arrives is never left holding
+   content back. The media query around that means a visitor who prefers
+   reduced motion gets the finished page and the browser's own scrolling —
+   and gets them the moment they change the setting, not on the next load.
+   ========================================================================== */
+
+@import "lenis/dist/lenis.css";
+
+@media (prefers-reduced-motion: no-preference) {
+  html.motion {
+    /* Held back until the script has a tween pointed at them. */
+    [data-intro],
+    [data-reveal] {
+      opacity: 0;
+    }
+
+    /* A split element is hidden whole and handed back a line at a time, so
+       the unsplit text is never seen. The script clears this as it splits.
+
+       Balanced wrapping has to go with it: it reflows while SplitText
+       measures, and it would hand back a different number of lines every
+       time the element is re-split at a new width. */
+    [data-split] {
+      visibility: hidden;
+      text-wrap: wrap;
+    }
+
+    /* SplitText clips each mask to the line box, which cuts the tails off
+       descenders. Give the room back without moving the line. */
+    .split-line-mask,
+    .split-word-mask,
+    .split-char-mask {
+      padding-bottom: 0.18em;
+      margin-bottom: -0.18em;
+    }
+
+    /* Room to drift without pulling an edge into frame. The scale has to
+       exceed the travel `data-parallax` asks for — 1.25 covers the default
+       ±8%. Kept here rather than in the tween so the element is already
+       oversized on the first paint, and so GSAP owns `transform` alone. */
+    [data-parallax] {
+      scale: 1.25;
+      will-change: transform;
+    }
+
+    /* Over a hero the bar carries no ground of its own. Once the page has
+       moved under it, it needs one — see the nav ScrollTrigger in
+       src/scripts/motion.ts. */
+    .nav_wrap.overlap {
+      transition:
+        background-color 300ms,
+        border-bottom-color 300ms;
+
+      &.is-scrolled {
+        background-color: var(--background);
+        border-bottom-color: var(--border);
+      }
+    }
+  }
+}

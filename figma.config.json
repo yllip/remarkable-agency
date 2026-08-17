@@ -1,0 +1,11 @@
+{
+  "codeConnect": {
+    "include": ["figma/**/*.figma.ts"],
+    "paths": {
+      "@/components": "src/components"
+    },
+    "importPaths": {
+      "src/components/*": "@/components"
+    }
+  }
+}

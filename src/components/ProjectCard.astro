@@ -1,0 +1,142 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Img from "@/components/Img.astro";
+import MetaRow from "@/components/MetaRow.astro";
+
+type ImageSource = ImageMetadata | string;
+
+interface Props extends Omit<HTMLAttributes<"a">, "title"> {
+  /** Set to `false` to skip rendering this component and its children. */
+  render?: boolean;
+  /**
+   * Where the label sits.
+   *
+   * - `cover` — over the image, on a gradient that keeps it readable (default)
+   * - `stacked` — under the image, on the section's own ground
+   */
+  variant?: "cover" | "stacked";
+  /** The project's name. */
+  label: string;
+  /** An imported asset, a remote `http(s)` URL, or a path to a file in `public/`. */
+  image: ImageSource;
+  /** Describe the image for anyone who can't see it. The label is not a substitute. */
+  imageAlt?: string;
+  /** Where the card leads. Left out, it renders as a plain figure. */
+  href?: string;
+  /** Aspect ratio of the visual, as a CSS `aspect-ratio` value. */
+  ratio?: string;
+  /** Set on the one card above the fold, so it isn't lazily loaded. */
+  loading?: "lazy" | "eager";
+}
+
+const {
+  render = true,
+  variant = "cover",
+  label,
+  image,
+  imageAlt,
+  href,
+  ratio,
+  loading = "lazy",
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? "a" : "div";
+const tagAttrs = href ? { href } : {};
+---
+
+{
+  render && (
+    <Tag
+      class:list={["project-card", variant, href && "card-link", className]}
+      style={ratio ? `--_ratio: ${ratio};` : undefined}
+      {...tagAttrs}
+      {...rest}
+    >
+      <div class="project-card_visual">
+        <Img
+          src={image}
+          alt={imageAlt}
+          loading={loading}
+          variant="constrained"
+          sizes="(min-width: 64rem) 33vw, 100vw"
+        />
+      </div>
+      <MetaRow class="project-card_meta" arrow={!!href}>
+        {label}
+      </MetaRow>
+    </Tag>
+  )
+}
+
+<style is:global>
+  @layer components {
+    .project-card {
+      --_ratio: 3 / 4;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      width: 100%;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .project-card_visual {
+      position: relative;
+      width: 100%;
+      aspect-ratio: var(--_ratio);
+      /* The card is a column flex container, so this box would otherwise floor
+         at its content's height and a portrait source would push it past the
+         ratio. The image is cropped to fit instead, which is the point of it. */
+      min-height: 0;
+      border-radius: var(--radius-small);
+      overflow: clip;
+      & > .image {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    /* Cover: the label moves inside the visual and sits on a gradient. The
+       gradient is a child of the visual rather than the card, so the rounding
+       and the clip it already has apply to it too. */
+    .project-card.cover {
+      gap: 0;
+      position: relative;
+
+      & > .project-card_visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image: linear-gradient(
+          to bottom,
+          transparent 46%,
+          color-mix(in srgb, black 68%, transparent) 93.5%
+        );
+      }
+
+      & > .project-card_meta {
+        position: absolute;
+        inset: auto 0 0;
+        width: auto;
+        padding: 0.875rem 1.25rem;
+        /* The gradient is dark whatever the section is, so the label is too. */
+        color: var(--light-200);
+      }
+    }
+
+    /* The whole card is the target, so the image lifts with the label. */
+    .project-card.card-link {
+      & .image {
+        transition: scale 400ms;
+      }
+      @media (hover: hover) {
+        &:hover .image {
+          scale: 1.04;
+        }
+      }
+    }
+  }
+</style>
