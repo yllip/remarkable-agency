@@ -1,7 +1,7 @@
 ---
 import Icon from "@/components/Icon.astro";
 import logo from "@/assets/logo.svg";
-import { SITE_NAME } from "@/consts.ts";
+import { SITE_NAME, SITE_SOCIALS } from "@/consts.ts";
 
 interface Props {
   /**
@@ -14,6 +14,14 @@ interface Props {
 
 const { overlap = false } = Astro.props;
 
+/** The panel's links, in the order they are listed and numbered. */
+const NAV_LINKS: { label: string; href: string }[] = [
+  { label: "Home", href: "/" },
+  { label: "Blog", href: "/blog" },
+  { label: "Work", href: "/work" },
+  { label: "Example Components", href: "/example-components" },
+];
+
 /** Marks the link for the page being viewed. Trailing slashes are ignored. */
 const isCurrent = (href: string) =>
   Astro.url.pathname.replace(/\/+$/, "") === href.replace(/\/+$/, "")
@@ -23,65 +31,121 @@ const isCurrent = (href: string) =>
 
 <header class:list={["nav_wrap", overlap && "overlap"]} data-nav>
   <div class="nav_inner">
-    <a class="nav_logo" href="/" aria-label={SITE_NAME}>
-      <Icon src={logo} variant="full-width" />
-    </a>
-    <button
-      class="nav_toggle"
-      type="button"
-      aria-label="Menu"
-      aria-expanded="false"
-      aria-controls="nav-menu"
+    <div class="nav_bar">
+      <a class="nav_logo" href="/" aria-label={SITE_NAME}>
+        <Icon src={logo} variant="full-width" />
+      </a>
+      <button
+        class="nav_toggle"
+        type="button"
+        aria-label="Menu"
+        aria-expanded="false"
+        aria-controls="nav-menu"
+      >
+        <span class="nav_toggle_icon"></span>
+      </button>
+    </div>
+
+    {
+      /* Darkens and blurs the page the panel slides over, and closes it on a
+         click. Purely decorative: every way of closing the panel with a
+         keyboard is on the panel itself or on Escape. */
+    }
+    <div class="nav_scrim" data-nav-scrim aria-hidden="true"></div>
+
+    {
+      /* `data-lenis-prevent` keeps a scroll inside the panel from being
+         handed to the page underneath on a short viewport. */
+    }
+    <nav
+      class="nav_menu theme-dark"
+      id="nav-menu"
+      aria-label="Main"
+      data-lenis-prevent
     >
-      <span class="nav_toggle_icon"></span>
-    </button>
-    <nav class="nav_menu" id="nav-menu" aria-label="Main">
       <div class="nav_menu_inner">
+        <div class="nav_menu_head">
+          <span class="nav_menu_label">Menu</span>
+          {
+            /* Sits where the toggle it replaces was, so the disc looks like it
+               stayed put and turned into a cross. */
+          }
+          <button
+            class="nav_toggle nav_close"
+            type="button"
+            aria-label="Close menu"
+          >
+            <span class="nav_toggle_icon"></span>
+          </button>
+        </div>
+
         <ul class="nav_links">
-          <li>
-            <a class="nav_link" href="/" aria-current={isCurrent("/")}>
-              Home
-            </a>
-          </li>
-          <li>
-            <a class="nav_link" href="/blog" aria-current={isCurrent("/blog")}>
-              Blog
-            </a>
-          </li>
-          <li>
-            <a class="nav_link" href="/work" aria-current={isCurrent("/work")}>
-              Work
-            </a>
-          </li>
-          <li>
-            <a
-              class="nav_link"
-              href="/example-components"
-              aria-current={isCurrent("/example-components")}
-            >
-              Example Components
-            </a>
-          </li>
+          {
+            NAV_LINKS.map(({ label, href }, index) => (
+              <li style={`--_i: ${index};`}>
+                <a class="nav_link" href={href} aria-current={isCurrent(href)}>
+                  <span class="nav_link_index" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span class="nav_link_label">{label}</span>
+                </a>
+              </li>
+            ))
+          }
         </ul>
+
+        <div class="nav_socials" style={`--_i: ${NAV_LINKS.length};`}>
+          <span class="nav_menu_label">Follow</span>
+          <ul class="nav_social_links">
+            {
+              SITE_SOCIALS.map(({ label, href }) => (
+                <li>
+                  <a
+                    class="nav_social_link"
+                    href={href}
+                    rel="me noopener"
+                    target="_blank"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
       </div>
     </nav>
   </div>
 </header>
 
 {
-  /* Without scripting the button can't do anything, so show the links instead. */
+  /* Without scripting the button can't do anything, so the panel drops out of
+     its fixed position and sits open under the bar instead. */
 }
 <noscript>
   <style>
-    .nav_toggle {
+    .nav_toggle,
+    .nav_scrim {
       display: none;
     }
     .nav_menu {
-      grid-template-rows: 1fr;
+      position: static;
+      width: auto;
+      translate: none;
       visibility: visible;
+      border-inline-start: 0;
     }
     .nav_menu_inner {
+      min-height: 0;
+      padding-inline: 0;
+    }
+    .nav_menu_head {
+      display: none;
+    }
+    .nav_links > li,
+    .nav_socials {
       opacity: 1;
+      translate: none;
     }
   </style>
 </noscript>
@@ -89,40 +153,85 @@ const isCurrent = (href: string) =>
 <script>
   const nav = document.querySelector<HTMLElement>("[data-nav]");
   const toggle = nav?.querySelector<HTMLButtonElement>(".nav_toggle");
+  const menu = nav?.querySelector<HTMLElement>(".nav_menu");
+  const close = nav?.querySelector<HTMLButtonElement>(".nav_close");
+  const scrim = nav?.querySelector<HTMLElement>("[data-nav-scrim]");
 
-  if (nav && toggle) {
+  if (nav && toggle && menu && close && scrim) {
+    const isOpen = () => nav.hasAttribute("data-open");
+
+    /* The attribute on the document is what locks the page behind the panel;
+       everything else hangs off the one on the header. */
     const setOpen = (open: boolean) => {
       nav.toggleAttribute("data-open", open);
+      document.documentElement.toggleAttribute("data-nav-open", open);
       toggle.setAttribute("aria-expanded", String(open));
+      /* A panel still computed `visibility: hidden` can't take focus, so the
+         style change above is flushed before focus is moved. */
+      void menu.offsetWidth;
+      /* Focus follows the panel: into it on the way in, back to the button
+         that opened it on the way out. */
+      (open ? close : toggle).focus();
     };
 
-    toggle.addEventListener("click", () => {
-      setOpen(toggle.getAttribute("aria-expanded") !== "true");
-    });
+    toggle.addEventListener("click", () => setOpen(true));
+    close.addEventListener("click", () => setOpen(false));
+    scrim.addEventListener("click", () => setOpen(false));
 
-    nav.querySelectorAll("a").forEach((link) => {
+    menu.querySelectorAll("a").forEach((link) => {
       link.addEventListener("click", () => setOpen(false));
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && nav.hasAttribute("data-open")) {
-        setOpen(false);
-        toggle.focus();
-      }
-    });
+      if (!isOpen()) return;
 
-    /* A click on the toggle lands inside the nav, so it stays its own job. */
-    document.addEventListener("click", (event) => {
-      const target = event.target;
-      if (!nav.hasAttribute("data-open") || !(target instanceof Node)) return;
-      if (!nav.contains(target)) setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+
+      /* The page behind the panel is still in the tab order, so the tab wraps
+         inside the panel rather than walking off into it. */
+      if (event.key !== "Tab") return;
+
+      const stops = menu.querySelectorAll<HTMLElement>("a[href], button");
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (!first || !last) return;
+
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !menu.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     });
   }
 </script>
 
 <style is:global>
   @layer components {
+    /* The panel takes the scrollbar away while it is open, so the gutter is
+       reserved at all times — otherwise the page under it would shift by the
+       scrollbar's width as it opens. Lenis locks the same way, which is why
+       its own `.lenis-stopped` rule is this one. */
+    html {
+      scrollbar-gutter: stable;
+    }
+
+    html[data-nav-open] {
+      overflow: hidden;
+    }
+
     .nav_wrap {
+      /* One curve for the panel and everything that moves with it: quick to
+         leave, slow to settle. */
+      --_ease: cubic-bezier(0.33, 1, 0.68, 1);
+      --_duration: 500ms;
+      --_panel-width: min(100%, 27rem);
+
       position: sticky;
       top: 0;
       z-index: 50;
@@ -142,31 +251,31 @@ const isCurrent = (href: string) =>
         border-bottom-color: transparent;
       }
 
-      /* An open menu needs a surface behind it whatever it sits over. */
-      &.overlap[data-open] {
-        background-color: var(--background);
-        border-bottom-color: var(--border);
+      /* The bar itself is under the scrim once the panel is open, so the
+         wordmark left standing over it takes the scrim's value rather than
+         the section's. */
+      &[data-open] {
+        color: var(--light-200);
       }
     }
 
     .nav_inner {
       width: 100%;
       max-width: var(--max-width-main);
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      /* No row gap: a closed menu would still hold the bar open by it. The
-         panel spaces itself from inside instead. */
-      gap: 0 var(--space-6);
     }
 
-    /* The bar row carries `--nav-height` rather than the header, so the bar
-       stays that tall when the mobile menu grows the header beneath it.
-       The header itself has no vertical padding: anything else offsetting
-       against `--nav-height` would be off by it. */
-    .nav_logo,
-    .nav_toggle {
+    /* The bar row carries `--nav-height` rather than the header, so anything
+       offsetting against `--nav-height` lines up with it. The header itself
+       has no vertical padding. */
+    .nav_bar {
+      position: relative;
+      /* Above the scrim, so the wordmark stays crisp while the page behind it
+         dims. The panel is above both and covers the toggle. */
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-6);
       min-height: var(--nav-height);
     }
 
@@ -184,9 +293,9 @@ const isCurrent = (href: string) =>
       }
     }
 
-    /* A filled disc that inverts against the bar it sits on, so it reads the
-       same over a photographic hero as it does over a plain section. The row
-       height above still governs the bar; the disc is centred inside it. */
+    /* A filled disc that inverts against the ground it sits on, so it reads
+       the same over a photographic hero as it does over a plain section, and
+       again inside the panel. */
     .nav_toggle {
       --_icon-width: 1.625rem;
       --_bar-gap: 0.75rem;
@@ -198,14 +307,13 @@ const isCurrent = (href: string) =>
       min-width: var(--_disc-size);
       height: var(--_disc-size);
       min-height: var(--_disc-size);
-      align-self: center;
       background-color: var(--text);
       color: var(--background);
       border: 0;
       border-radius: var(--radius-round);
       transition:
         opacity 200ms,
-        background-color 200ms;
+        rotate 400ms var(--_ease);
       @media (hover: hover) {
         &:hover {
           opacity: 0.8;
@@ -227,7 +335,7 @@ const isCurrent = (href: string) =>
         inset-inline: 0;
         height: var(--border-width);
         background-color: currentcolor;
-        transition: transform 200ms;
+        transition: transform 300ms var(--_ease);
       }
       &::before {
         top: 0;
@@ -237,7 +345,9 @@ const isCurrent = (href: string) =>
       }
     }
 
-    /* Open: each bar moves to the middle of the box and crosses the other. */
+    /* Each bar moves to the middle of the box and crosses the other. The
+       close button is only ever seen open, so it holds the cross outright. */
+    .nav_close .nav_toggle_icon,
     .nav_wrap[data-open] .nav_toggle_icon {
       &::before {
         transform: translateY(calc(var(--_bar-gap) / 2)) rotate(45deg);
@@ -247,76 +357,226 @@ const isCurrent = (href: string) =>
       }
     }
 
-    /* A 0fr → 1fr row is what slides: the panel takes the height its content
-       asks for and animates back down to nothing. `visibility` keeps the
-       links out of the tab order while closed, and stays `visible` for the
-       length of the transition so the panel is still on screen as it goes. */
-    .nav_menu {
-      order: 3;
-      flex-basis: 100%;
-      display: grid;
-      grid-template-rows: 0fr;
+    /* A quarter turn as it is opened, so the cross arrives having been drawn
+       rather than swapped in. */
+    .nav_close {
+      rotate: -90deg;
+      .nav_wrap[data-open] & {
+        rotate: 0deg;
+      }
+    }
+
+    .nav_scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background-color: color-mix(in srgb, var(--dark-900) 55%, transparent);
+      backdrop-filter: blur(4px);
+      opacity: 0;
       visibility: hidden;
       transition:
-        grid-template-rows 250ms ease,
-        visibility 250ms;
+        opacity var(--_duration) var(--_ease),
+        visibility var(--_duration);
     }
 
+    /* Slides in from the trailing edge, full height, over everything else in
+       the bar. `visibility` keeps the links out of the tab order while it is
+       closed, and stays `visible` for the length of the transition so the
+       panel is still on screen as it leaves. */
+    .nav_menu {
+      position: fixed;
+      inset-block: 0;
+      inset-inline-end: 0;
+      z-index: 3;
+      width: var(--_panel-width);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background-color: var(--background);
+      color: var(--text);
+      border-inline-start: var(--border-width) solid var(--border);
+      translate: 100% 0;
+      visibility: hidden;
+      transition:
+        translate var(--_duration) var(--_ease),
+        visibility var(--_duration);
+    }
+
+    .nav_wrap[data-open] {
+      .nav_scrim {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .nav_menu {
+        translate: 0 0;
+        visibility: visible;
+      }
+    }
+
+    /* `min-height` rather than `height`, so the social row can be held at the
+       bottom of a tall panel and still push it into a scroll on a short one. */
     .nav_menu_inner {
-      overflow: hidden;
-      opacity: 0;
-      transition: opacity 250ms ease;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      padding-inline: var(--site-margin);
+      padding-bottom: var(--space-7);
     }
 
-    .nav_wrap[data-open] .nav_menu {
-      grid-template-rows: 1fr;
-      visibility: visible;
+    /* As tall as the bar, so the close button lands on the toggle it stands
+       in for. */
+    .nav_menu_head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      min-height: var(--nav-height);
     }
 
-    .nav_wrap[data-open] .nav_menu_inner {
-      opacity: 1;
+    .nav_menu_label {
+      font-size: var(--text-small);
+      font-weight: var(--primary-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: color-mix(in lab, currentcolor 50%, transparent);
     }
 
-    /* Padding sits here, inside the box that collapses, so a closed menu
-       measures zero and the bar stays exactly `--nav-height`. */
     .nav_links {
       display: flex;
       flex-direction: column;
       margin: 0;
-      padding: var(--space-2) 0 var(--space-4);
+      padding: 0;
       list-style: none;
-      font-size: var(--text-main);
-      font-weight: var(--primary-medium);
-      & > li + li {
+      & > li {
         border-top: var(--border-width) solid var(--border);
       }
     }
 
+    /* Each row and the social block arrive in turn behind the panel's own
+       move. Closing has no delay, so they leave with it in one piece. */
+    .nav_links > li,
+    .nav_socials {
+      opacity: 0;
+      translate: var(--space-4) 0;
+      transition:
+        opacity 400ms var(--_ease),
+        translate 400ms var(--_ease);
+    }
+
+    .nav_wrap[data-open] :is(.nav_links > li, .nav_socials) {
+      opacity: 1;
+      translate: 0 0;
+      transition-delay: calc(140ms + var(--_i, 0) * 55ms);
+    }
+
     .nav_link {
-      display: block;
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-3);
       padding-block: var(--space-3);
-      color: color-mix(in lab, currentcolor 60%, transparent);
+      font-size: var(--h4);
+      font-weight: var(--primary-medium);
+      line-height: var(--line-height-medium);
+      letter-spacing: var(--letter-spacing-tight);
+      color: color-mix(in lab, currentcolor 65%, transparent);
       text-decoration: none;
-      text-underline-offset: 0.4em;
-      text-decoration-thickness: var(--border-width);
-      transition: color 200ms;
+      transition: color 250ms;
       &[aria-current="page"] {
         color: var(--text);
       }
       @media (hover: hover) {
         &:hover {
           color: var(--text);
+          .nav_link_label {
+            translate: var(--space-1) 0;
+          }
         }
       }
     }
 
-    /* The brand keeps every link behind the toggle at all widths, so there is
-       no breakpoint that moves them into the bar. The panel gets more room to
-       breathe once there is room for it. */
+    /* Fixed width and tabular figures, so the labels start on one line
+       whether the number is 01 or 11. */
+    .nav_link_index {
+      flex-shrink: 0;
+      width: 2ch;
+      font-size: var(--text-small);
+      font-weight: var(--primary-regular);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: var(--letter-spacing-normal);
+      color: var(--heading-accent);
+    }
+
+    .nav_link_label {
+      display: inline-block;
+      transition: translate 300ms var(--_ease);
+    }
+
+    /* The brand's marker, sized against the label rather than the page. */
+    .nav_link[aria-current="page"] .nav_link_label::after {
+      content: "";
+      display: inline-block;
+      width: 0.3em;
+      height: 0.3em;
+      margin-inline-start: 0.45em;
+      vertical-align: 0.25em;
+      border-radius: var(--radius-round);
+      background-color: var(--eyebrow-marker-color);
+    }
+
+    /* Held at the foot of the panel, away from the links it isn't part of. */
+    .nav_socials {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-top: auto;
+      padding-top: var(--space-6);
+    }
+
+    .nav_social_links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    /* A pill, so the socials read as a set of their own rather than as more
+       navigation. Inverts on hover the way the toggle does. */
+    .nav_social_link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      padding: var(--space-1) var(--space-3);
+      font-size: var(--text-small);
+      color: inherit;
+      text-decoration: none;
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-round);
+      transition:
+        background-color 200ms,
+        border-color 200ms,
+        color 200ms;
+      /* Marks the jump off site. Sized down and lifted to sit with the caps. */
+      &::after {
+        content: "\2197";
+        font-size: 0.85em;
+        line-height: 1;
+      }
+      @media (hover: hover) {
+        &:hover {
+          background-color: var(--text);
+          border-color: var(--text);
+          color: var(--background);
+        }
+      }
+    }
+
+    /* Only the panel grows: the links are already as large as a label like
+       "Example Components" can be and still hold one line. */
     @media (width >= 48rem) {
-      .nav_links {
-        padding-bottom: var(--space-6);
-        font-size: var(--text-large);
+      .nav_wrap {
+        --_panel-width: min(100%, 30rem);
       }
     }
   }

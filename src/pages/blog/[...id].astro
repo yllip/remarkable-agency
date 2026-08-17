@@ -12,6 +12,7 @@ import Grid from "@/components/Grid.astro";
 import PostCard from "@/components/PostCard.astro";
 import Button from "@/components/Button.astro";
 import ButtonWrapper from "@/components/ButtonWrapper.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
 import { getPosts, postHref, type Post } from "@/utils/blog.ts";
 
 export async function getStaticPaths() {
@@ -27,7 +28,7 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
 
 const {
   title,
@@ -45,7 +46,7 @@ const more = (await getPosts())
   .slice(0, 3);
 ---
 
-<Layout title={title} description={description} type="article">
+<Layout title={title} description={description} type="article" theme="dark">
   {/* ---------- Post ---------- */}
   <Section paddingBottom="small" gap="7">
     <div class="post-header">
@@ -90,9 +91,18 @@ const more = (await getPosts())
       )
     }
 
-    <RichText class="post-body" maxWidth={70}>
-      <Content />
-    </RichText>
+    {
+      /* The contents come before the post in the markup, so a reader moving
+         through the page by keyboard or screen reader meets the list of
+         sections before the sections themselves. Wide enough, and it moves to
+         the column beside them. */
+    }
+    <div class="post-layout">
+      <TableOfContents headings={headings} maxDepth={2} />
+      <RichText class="post-body" maxWidth={70}>
+        <Content />
+      </RichText>
+    </div>
 
     <ButtonWrapper>
       <Button element="link" href="/blog" variant="secondary">
@@ -139,6 +149,46 @@ const more = (await getPosts())
       width: 100%;
       border-radius: var(--radius-main);
       aspect-ratio: 16 / 9;
+    }
+
+    /* The post and its contents. One column until there is room for two, at
+       which point the list takes the space the 70ch measure leaves over and
+       the post keeps the place it already had. */
+    .post-layout {
+      width: 100%;
+      display: grid;
+      gap: var(--space-6);
+
+      @media (width >= 64rem) {
+        grid-template-columns: minmax(0, 1fr) minmax(11rem, 17rem);
+        column-gap: var(--section-space-small);
+        align-items: start;
+
+        & > .post-body {
+          grid-area: 1 / 1;
+        }
+
+        /* Stays with the reader for the length of the post, and scrolls
+           within itself rather than past the bottom of the screen. */
+        & > .toc {
+          --_ring: calc(var(--focus-offset) + var(--focus-width));
+          grid-area: 1 / 2;
+          position: sticky;
+          top: calc(var(--nav-height) + var(--space-5));
+          max-height: calc(100svh - var(--nav-height) - var(--space-5) * 2);
+          /* A scroll box clips at its own edge, and a focused entry's ring
+             sits outside the link. Inset by as much as the ring stands proud,
+             then pulled back level, so the list has not moved. */
+          padding: var(--_ring);
+          margin: calc(var(--_ring) * -1);
+          overflow: auto;
+        }
+      }
+    }
+
+    /* Clear of the bar the section headings are jumped under. */
+    .post-body :is(h2, h3, h4, h5, h6) {
+      scroll-margin-top: calc(var(--nav-height) + var(--space-5));
     }
 
     /* Cards in a row match heights so the dates along the bottom line up. */

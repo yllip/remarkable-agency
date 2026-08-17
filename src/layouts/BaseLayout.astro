@@ -15,9 +15,20 @@ type Props = SeoProps & {
    * `paddingTop="navoverlap"` to clear the bar.
    */
   overlap?: boolean;
+  /**
+   * Set to `false` on a page that closes on something of its own and shouldn't
+   * end on the shared call to action — a case study, which hands straight over
+   * to the next one.
+   */
+  footer?: boolean;
 };
 
-const { theme = "inherit", overlap = false, ...seo } = Astro.props;
+const {
+  theme = "inherit",
+  overlap = false,
+  footer = true,
+  ...seo
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -31,6 +42,29 @@ const { theme = "inherit", overlap = false, ...seo } = Astro.props;
     }
     <script is:inline>
       document.documentElement.classList.add("motion");
+
+      /* The other half of the page transition in src/scripts/motion.ts: the
+         page being left sets this flag, so the page arriving paints under the
+         veil already up and fades it off. Before the first paint, or the
+         handover shows as a flash of the new page's top. */
+      try {
+        if (sessionStorage.getItem("veiled")) {
+          sessionStorage.removeItem("veiled");
+          var root = document.documentElement;
+          root.classList.add("is-veiled");
+          var lift = function () {
+            root.classList.remove("is-veiled");
+          };
+          /* Once the page it is hiding is actually there — with a deadline, so
+             a stalled image can never leave the veil up for good. */
+          addEventListener("load", function () {
+            requestAnimationFrame(lift);
+          });
+          setTimeout(lift, 1600);
+        }
+      } catch {
+        /* No sessionStorage (private mode): pages just don't cross-fade. */
+      }
     </script>
     <slot name="head" />
   </head>
@@ -43,7 +77,9 @@ const { theme = "inherit", overlap = false, ...seo } = Astro.props;
     <main id="main" tabindex="-1">
       <slot />
     </main>
-    <Footer />
+    {footer && <Footer />}
+    {/* Covers the page while one hands over to the next. */}
+    <div class="page-veil" aria-hidden="true"></div>
     <script>
       import "@/scripts/motion.ts";
     </script>

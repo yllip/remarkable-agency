@@ -1,0 +1,130 @@
+---
+import type { MarkdownHeading } from "astro";
+import type { HTMLAttributes } from "astro/types";
+
+interface Props extends HTMLAttributes<"nav"> {
+  /** Set to `false` to skip rendering this component and its children. */
+  render?: boolean;
+  /** The entry's headings, as `render()` hands them over. */
+  headings: MarkdownHeading[];
+  /** The list's name, drawn above it and read out with it. */
+  label?: string;
+  /** Deepest level listed. `2` keeps sub-headings out of a long piece. */
+  maxDepth?: 2 | 3 | 4;
+  /** Below this many entries the list says nothing the page doesn't. */
+  minEntries?: number;
+}
+
+const {
+  render = true,
+  headings,
+  label = "On this page",
+  maxDepth = 3,
+  minEntries = 2,
+  class: className,
+  ...rest
+} = Astro.props;
+
+/* The `h1` is the page's own title, so the list starts a level under it. A
+   heading Markdown gave no id to can't be linked, so it is left out. */
+const entries = headings.filter(
+  ({ depth, slug }) => depth >= 2 && depth <= maxDepth && !!slug,
+);
+
+/* Levels are read as steps from the shallowest heading present rather than
+   from `h2`, so a piece written entirely in `h3`s reads as a flat list. */
+const top = Math.min(...entries.map(({ depth }) => depth));
+---
+
+{
+  /* `data-toc` is the handle src/scripts/motion.ts marks the entry being read
+     by. That behaviour lives there rather than here because a section renders
+     its slot once to find out whether it holds anything, and a component's own
+     script is emitted on that first pass and lost with it. */
+}
+{
+  render && entries.length >= minEntries && (
+    <nav
+      class:list={["toc", className]}
+      aria-labelledby="toc-title"
+      data-toc
+      {...rest}
+    >
+      <p class="toc_title text-style-small" id="toc-title">
+        {label}
+      </p>
+      <ol class="toc_list">
+        {entries.map(({ depth, slug, text }) => (
+          <li
+            class="toc_item"
+            style={depth > top ? `--_indent: ${depth - top}` : undefined}
+          >
+            <a class="toc_link text-style-small" href={`#${slug}`}>
+              {text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+<style is:global>
+  @layer components {
+    .toc {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    /* Weighted like the nav's links: it labels the list rather than joining
+       it, so it carries more than the entries under it, not less. */
+    .toc_title {
+      font-weight: var(--primary-medium);
+      color: color-mix(in lab, currentcolor 60%, transparent);
+    }
+
+    .toc_list {
+      list-style: none;
+      padding: 0;
+      /* The rule is the list's spine; each link's own border stands in for the
+         stretch of it beside that entry. */
+      border-inline-start: var(--border-width) solid var(--border);
+    }
+
+    .toc_link {
+      display: block;
+      /* Over the spine rather than beside it, so the marker replaces that
+         stretch of rule instead of doubling it. */
+      margin-inline-start: calc(var(--border-width) * -1);
+      border-inline-start: var(--border-width) solid transparent;
+      padding-block: var(--space-2);
+      padding-inline-start: calc(
+        var(--space-3) + var(--_indent, 0) * var(--space-4)
+      );
+      color: color-mix(in lab, currentcolor 60%, transparent);
+      text-wrap: pretty;
+      /* The spine already says these lead somewhere, so the line under each
+         one is saved for the hover — the footer's links read the same way. */
+      text-decoration: none;
+      text-underline-offset: 0.25em;
+      text-decoration-thickness: var(--border-width);
+      transition:
+        color 200ms,
+        border-color 200ms;
+
+      @media (hover: hover) {
+        &:hover {
+          color: var(--text);
+          text-decoration: underline;
+        }
+      }
+
+      &[aria-current] {
+        color: var(--text);
+        border-inline-start-color: var(--heading-accent);
+      }
+    }
+  }
+</style>

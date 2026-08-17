@@ -1,7 +1,6 @@
 ---
 import type { GetStaticPaths } from "astro";
-import type { CollectionEntry } from "astro:content";
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
 import Layout from "@/layouts/BaseLayout.astro";
 import Section from "@/components/Section.astro";
 import Heading from "@/components/Heading.astro";
@@ -9,90 +8,533 @@ import Paragraph from "@/components/Paragraph.astro";
 import Eyebrow from "@/components/Eyebrow.astro";
 import Img from "@/components/Img.astro";
 import RichText from "@/components/RichText.astro";
-import Button from "@/components/Button.astro";
-import ButtonWrapper from "@/components/ButtonWrapper.astro";
+import MetaRow from "@/components/MetaRow.astro";
+import { getProjects, projectHref, type Project } from "@/utils/projects.ts";
 
 export const getStaticPaths = (async () => {
-  const projects = await getCollection("projects");
-  return projects.map((project) => ({
+  const projects = await getProjects();
+  return projects.map((project, index) => ({
     params: { id: project.id },
-    props: { project },
+    props: {
+      project,
+      index,
+      total: projects.length,
+      /* The listing wraps, so the last project leads back to the first. */
+      next:
+        projects.length > 1
+          ? projects[(index + 1) % projects.length]
+          : undefined,
+    },
   }));
 }) satisfies GetStaticPaths;
 
-type Props = { project: CollectionEntry<"projects"> };
+type Props = {
+  project: Project;
+  index: number;
+  total: number;
+  next?: Project;
+};
 
-const { project } = Astro.props as Props;
+const { project, index, total, next } = Astro.props as Props;
 const { title, summary, image, imageAlt, services, year } = project.data;
 const { Content } = await render(project);
+
+const pad = (value: number) => String(value).padStart(2, "0");
 ---
 
-<Layout title={title} description={summary} type="article">
-  <Section paddingTop="large" paddingBottom="small" gap="6">
-    <div class="project_header">
-      <Eyebrow data-intro>{String(year)}</Eyebrow>
-      <Heading tag="h1" variant="h2" data-split="lines" data-intro
-        >{title}</Heading
-      >
-      <Paragraph variant="large" maxWidth={56} data-intro>{summary}</Paragraph>
+{/* No footer: the page closes on the next project and hands straight over to
+     it, so the shared call to action would sit somewhere nobody stops. */}
+<Layout
+  overlap
+  footer={false}
+  title={title}
+  description={summary}
+  type="article"
+  theme="dark"
+>
+  {/* ---------- Cover ---------- */}
+  <Section
+    class="project-hero"
+    paddingTop="navoverlap"
+    paddingBottom="medium"
+    containerClass="project-hero_container"
+  >
+    <div class="project-hero_background" slot="background">
+      <Img
+        src={image}
+        alt={imageAlt}
+        loading="eager"
+        fetchPriority="high"
+        data-parallax="8"
+      />
     </div>
 
-    <ul class="project_services" data-intro>
-      {
-        services.map((service) => (
-          <li>
-            <Eyebrow variant="tag">{service}</Eyebrow>
-          </li>
-        ))
-      }
-    </ul>
+    <p class="project-hero_index text-style-small" data-intro>
+      {pad(index + 1)}<span class="sr-only"> of </span><span
+        class="project-hero_rule"
+        aria-hidden="true"></span>{pad(total)}
+    </p>
+
+    <Heading
+      tag="h1"
+      variant="h1"
+      class="project-hero_heading"
+      data-split="lines"
+      data-intro
+    >
+      {title}
+    </Heading>
   </Section>
 
-  <Section paddingTop="none" paddingBottom="medium">
-    <Img
-      src={image}
-      alt={imageAlt}
-      loading="eager"
-      fetchPriority="high"
-      class="project_cover"
-      data-reveal
-    />
+  {/* ---------- Credits and positioning ---------- */}
+  <Section paddingBottom="small" containerClass="project-brief">
+    <dl class="project-facts" data-reveal>
+      <div class="project-facts_row">
+        <dt class="text-style-small">Year</dt>
+        <dd class="text-style-small">{year}</dd>
+      </div>
+      <div class="project-facts_row">
+        <dt class="text-style-small">Services</dt>
+        <dd class="text-style-small">
+          <ul class="project-facts_list">
+            {services.map((service) => <li>{service}</li>)}
+          </ul>
+        </dd>
+      </div>
+    </dl>
+
+    <Paragraph variant="h4" class="project-brief_statement" data-reveal>
+      {summary}
+    </Paragraph>
   </Section>
 
-  <Section paddingTop="none" paddingBottom="large">
-    <RichText maxWidth={68}>
+  {/* ---------- The case study ---------- */}
+  <Section paddingBottom="large" containerClass="project-content">
+    <div class="project-content_aside">
+      <Eyebrow data-reveal>The work</Eyebrow>
+    </div>
+    <RichText class="project-content_body" maxWidth={62}>
       <Content />
     </RichText>
-    <ButtonWrapper>
-      <Button element="link" href="/work" variant="secondary">
-        All work
-      </Button>
-    </ButtonWrapper>
   </Section>
+
+  {/* ---------- Next project ---------- */}
+  {
+    next && (
+      <section
+        class="next-up theme-dark"
+        data-next-up={projectHref(next)}
+        aria-labelledby="next-up-title"
+      >
+        <div class="next-up_pin" data-next-pin>
+          <div class="next-up_frame" data-next-frame>
+            <Img
+              src={next.data.image}
+              alt={next.data.imageAlt}
+              class="next-up_image"
+              data-next-image
+            />
+
+            <div class="next-up_content" data-next-content>
+              <Eyebrow>Next project</Eyebrow>
+              <Heading tag="h2" variant="h1" class="next-up_title">
+                <a
+                  class="next-up_link"
+                  id="next-up-title"
+                  href={projectHref(next)}
+                >
+                  {next.data.title}
+                </a>
+              </Heading>
+              <MetaRow class="next-up_row">View the case study</MetaRow>
+            </div>
+          </div>
+
+          <div class="next-up_meter">
+            <a class="next-up_all text-style-small" href="/work">
+              All work
+            </a>
+            <div class="next-up_track" aria-hidden="true">
+              <span class="next-up_bar" data-next-bar />
+            </div>
+            <p class="next-up_readout text-style-small" aria-hidden="true">
+              <span data-next-hint>Keep scrolling</span>
+              <span class="next-up_count">
+                <span data-next-count>0</span>%
+              </span>
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 </Layout>
 
 <style is:global>
   @layer components {
-    .project_header {
-      display: flex;
-      flex-direction: column;
-      align-items: start;
-      gap: var(--space-5);
+    /* ---------- Cover ---------- */
+
+    /* The page opens on the work rather than on a headline about it: the cover
+       fills the screen, the nav sits over it, and the title is set on the
+       photograph itself. */
+    .project-hero {
+      min-height: 86svh;
+      justify-content: flex-end;
+      overflow: clip;
     }
 
-    .project_services {
+    .project-hero_background {
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        /* The nav rides the top edge and the title the bottom, so both ends
+           are darkened and the middle of the photograph is left alone. */
+        background-image:
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, var(--dark-900) 55%, transparent),
+            transparent 38%
+          ),
+          linear-gradient(
+            to top,
+            color-mix(in srgb, var(--dark-900) 82%, transparent),
+            transparent 62%
+          );
+      }
+      & > .image {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .project-hero_container {
+      gap: var(--space-4);
+      /* Type sits on the photograph, which is dark at this end whatever the
+         section's own theme is. */
+      color: var(--light-100);
+    }
+
+    /* Position in the portfolio, drawn as a numbered plate. */
+    .project-hero_index {
       display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
+      align-items: center;
+      gap: var(--space-3);
+      margin: 0;
+      color: color-mix(in lab, currentcolor 70%, transparent);
+    }
+
+    .project-hero_rule {
+      width: var(--space-6);
+      height: var(--border-width);
+      background-color: currentcolor;
+    }
+
+    .project-hero_heading {
+      max-width: 18ch;
+    }
+
+    /* ---------- Credits and positioning ---------- */
+
+    /* Same columns as the body below it, so the credits and the label share one
+       edge and the statement starts where the prose does. */
+    .project-brief {
+      display: grid;
+      gap: var(--space-7) var(--site-gutter);
+      @media (width >= 64rem) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+        align-items: start;
+      }
+    }
+
+    /* Ruled like a spec sheet, not set as prose — it is a credit list, and it
+       should read as one at a glance. */
+    .project-facts {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin: 0;
+      border-top: var(--border-width) solid var(--border);
+    }
+
+    .project-facts_row {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding-block: var(--space-3);
+      border-bottom: var(--border-width) solid var(--border);
+
+      & > dt {
+        flex: none;
+        color: color-mix(in lab, currentcolor 60%, transparent);
+      }
+
+      & > dd {
+        margin: 0;
+        text-align: right;
+      }
+    }
+
+    .project-facts_list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
       margin: 0;
       padding: 0;
       list-style: none;
     }
 
-    .project_cover {
+    .project-brief_statement {
+      max-width: 30ch;
+    }
+
+    /* ---------- The case study ---------- */
+
+    /* The body is offset rather than centred, with the label holding the left
+       column as the text scrolls past it. */
+    .project-content {
+      display: grid;
+      gap: var(--space-5) var(--site-gutter);
+      @media (width >= 64rem) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+        align-items: start;
+      }
+    }
+
+    .project-content_aside {
+      @media (width >= 64rem) {
+        position: sticky;
+        top: var(--space-8);
+      }
+    }
+
+    /* ---------- Next project ----------
+
+       The page doesn't end on a card for what comes next, it ends held on it.
+       The section pins for a screen and a half while the project opens out of
+       the middle of the frame, a bar keeps score, and reaching the end of it
+       opens the project — see the `data-next-up` behaviour in
+       src/scripts/motion.ts.
+
+       Nothing here depends on that script to be legible. Left alone, the mask
+       is already open and the section reads as one full-height cover with a
+       link on it; the reveal's starting shape and the score, the two things
+       that only make sense in motion, are the last rules in this block. */
+
+    .next-up {
+      position: relative;
+      background-color: var(--background);
+      color: var(--text);
+    }
+
+    /* What ScrollTrigger fixes in place. A screen tall, so what is pinned is
+       exactly what is in frame. */
+    .next-up_pin {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 100svh;
+      padding: var(--site-margin);
+      overflow: clip;
+    }
+
+    /* The window the project opens through: the whole screen, masked back to a
+       plate in the middle of it. */
+    .next-up_frame {
+      --reveal-inline: 0%;
+      --reveal-block: 0%;
+      --reveal-radius: 0rem;
+
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: var(--site-margin);
+      clip-path: inset(
+        var(--reveal-block) var(--reveal-inline) round var(--reveal-radius)
+      );
+      isolation: isolate;
+
+      /* The type sits at the bottom of a photograph nobody has chosen for its
+         bottom edge, so that end is darkened enough to carry it whatever the
+         picture does there. */
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image: linear-gradient(
+          to top,
+          color-mix(in srgb, var(--dark-900) 94%, transparent),
+          color-mix(in srgb, var(--dark-900) 62%, transparent) 26%,
+          transparent 62%
+        );
+      }
+    }
+
+    /* Oversized to start with and settled by the timeline, so the mask opens
+       into the picture rather than dragging it open. */
+    .next-up_image {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      aspect-ratio: 3 / 2;
-      border-radius: var(--radius-main);
+      height: 100%;
+      will-change: transform;
+    }
+
+    /* A flex item, so it stacks over the gradient without needing to be
+       positioned — which leaves the frame as the containing block for the
+       link's hit area below. */
+    .next-up_content {
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-4);
+      width: var(--site-width);
+      max-width: var(--max-width-main);
+      margin-inline: auto;
+      /* Room for the score along the bottom of the screen. */
+      padding-bottom: var(--space-8);
+      color: var(--light-100);
+
+      /* Tighter between the lines, further off the score — the type is a
+         bigger share of a small screen. */
+      @media (width < 48rem) {
+        gap: var(--space-3);
+        padding-bottom: calc(var(--space-8) + var(--space-3));
+      }
+    }
+
+    .next-up_title {
+      margin: 0;
+      max-width: 20ch;
+    }
+
+    .next-up_link {
+      color: inherit;
+      text-decoration: none;
+
+      /* The whole cover is the target, not just the words on it. */
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+      }
+    }
+
+    /* The arrow closes the row at the far edge, the way it does on a card in
+       the listing. */
+    .next-up_row {
+      width: 100%;
+    }
+
+    /* ---------- Progress ---------- */
+
+    /* Over the picture once it has opened, on the section's own ground before
+       that — either way the same light type on a dark field. */
+    .next-up_meter {
+      position: relative;
+      z-index: 2;
+      display: none;
+      align-items: center;
+      gap: var(--space-4);
+      width: var(--site-width);
+      max-width: var(--max-width-main);
+      margin-inline: auto;
+      color: var(--light-100);
+    }
+
+    .next-up_all {
+      flex: none;
+      color: inherit;
+      text-decoration: none;
+      border-bottom: var(--border-width) solid
+        color-mix(in srgb, currentcolor 40%, transparent);
+
+      border-bottom-style: none;
+
+      @media (hover: hover) {
+        &:hover {
+          border-bottom-color: currentcolor;
+        }
+      }
+    }
+
+    .next-up_track {
+      flex: 1;
+      min-width: 0;
+      height: var(--border-width);
+      background-color: color-mix(in srgb, currentcolor 25%, transparent);
+    }
+
+    .next-up_bar {
+      display: block;
+      height: 100%;
+      background-color: var(--brand-500);
+      /* Grows from the left as the section is scrolled; the script writes the
+         scale, so the resting state has to be the empty one. */
+      transform: scaleX(0);
+      transform-origin: left center;
+      will-change: transform;
+    }
+
+    .next-up_readout {
+      display: flex;
+      flex: none;
+      gap: var(--space-3);
+      margin: 0;
+      color: color-mix(in lab, currentcolor 70%, transparent);
+    }
+
+    /* On a narrow screen the instruction is what the bar is already saying,
+       and it leaves the bar too little room to say it. */
+    [data-next-hint] {
+      @media (width < 48rem) {
+        display: none;
+      }
+    }
+
+    .next-up_count {
+      /* Digits change every frame; a fixed measure keeps the row still. */
+      min-width: 3ch;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--light-100);
+    }
+
+    /* ---------- The states the script animates out of ----------
+
+       Set here rather than in the tween so the mask is closed on the first
+       paint, and so the shape it opens from stays a decision made in CSS.
+       Gated the same way as everything in src/styles/motion.css: on a page
+       whose script never arrives, or for a visitor who would rather the page
+       held still, none of it applies and the cover above is simply open. */
+    @media (prefers-reduced-motion: no-preference) {
+      html.motion {
+        .next-up_frame {
+          --reveal-inline: 33%;
+          --reveal-block: 37%;
+          --reveal-radius: var(--radius-main);
+
+          /* A plate on a phone, not a slot. */
+          @media (width < 48rem) {
+            --reveal-inline: 20%;
+            --reveal-block: 34%;
+          }
+        }
+
+        .next-up_content {
+          opacity: 0;
+        }
+
+        /* Only worth drawing when there is progress to draw. */
+        .next-up_meter {
+          display: flex;
+        }
+      }
     }
   }
 </style>

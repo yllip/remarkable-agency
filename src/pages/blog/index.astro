@@ -12,10 +12,7 @@ import { getPosts, postHref } from "@/utils/blog.ts";
 const posts = await getPosts();
 ---
 
-<Layout
-  title="Blog"
-  description="Notes on brand, design and development from the Remarkable studio."
->
+<Layout title="Blog" description="Notes on brand, design and development from the Remarkable studio." theme="dark">
   {/* ---------- Intro ---------- */}
   <Section paddingBottom="small">
     <ContentWrapper variant="auto-width" class="blog-intro">

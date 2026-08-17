@@ -10,10 +10,7 @@ import ProjectCard from "@/components/ProjectCard.astro";
 const projects = await getProjects();
 ---
 
-<Layout
-  title="Selected work"
-  description="Case studies from the studio: brand strategy, identity, and the sites and products they live on."
->
+<Layout title="Selected work" description="Case studies from the studio: brand strategy, identity, and the sites and products they live on." theme="dark">
   <Section paddingTop="large" paddingBottom="large" containerClass="work-list">
     <div class="work-list_header">
       <Eyebrow data-intro>Portfolio</Eyebrow>

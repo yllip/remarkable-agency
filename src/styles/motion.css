@@ -15,6 +15,31 @@
 
 @import "lenis/dist/lenis.css";
 
+/* The ground one page hands over to the next on. Outside the gates below on
+   purpose: whatever a visitor's settings say, and whether or not the script
+   ever arrives, this must be transparent until something opts into it. The
+   fade is what's conditional, not the veil. */
+.page-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: var(--dark-900);
+  opacity: 0;
+  pointer-events: none;
+}
+
+html.is-veiled .page-veil {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Kept in step with VEIL_SECONDS in src/scripts/motion.ts, which waits this
+     long before following the link. */
+  html.motion .page-veil {
+    transition: opacity 450ms ease;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html.motion {
     /* Held back until the script has a tween pointed at them. */

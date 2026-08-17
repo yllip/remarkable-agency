@@ -4,7 +4,7 @@ export const SITE_NAME = "Remarkable";
 export const SITE_DESCRIPTION =
   "Remarkable Studio is a creative agency helping authentic brands create connections through human-centric strategy, design and development.";
 /** Canonical origin. Resolves canonical URLs, social images, and the sitemap. */
-export const SITE_URL = "https://lumosframework.timothyricks.com";
+export const SITE_URL = "https://remarkable-agency.vercel.app";
 /** Social profiles listed in the footer. */
 export const SITE_SOCIALS: { label: string; href: string }[] = [
   { label: "Instagram", href: "https://instagram.com/" },
